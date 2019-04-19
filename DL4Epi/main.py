@@ -105,7 +105,7 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name):
   parser.add_argument('--batch_size', type=int, default=128, metavar='N',help='batch size')
   # --- Misc prediction option
   parser.add_argument('--horizon', type=int, default=12, help='predict horizon')
-  parser.add_argument('--window', type=int, default=24 * 7,help='window size')
+  parser.add_argument('--window', type=int, default=24,help='window size')
   parser.add_argument('--metric', type=int, default=1, help='whether (1) or not (0) normalize rse and rae with global variance/deviation ')
   parser.add_argument('--normalize', type=int, default=0, help='the normalized method used, detail in the utils.py')
   
@@ -114,17 +114,19 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name):
   parser.add_argument('--cuda', type=str, default=False, help='use gpu or not')
   
   print ("HElllo")
-  
+  tmp = np.reshape(data,(-1,16))
+  np.savetxt("tmp.txt",tmp,delimiter=",", fmt='%f')
+  np.savetxt("adjacency_matrix.txt",adjacency_matrix,delimiter=",", fmt='%f')
   args = parser.parse_args()
   args.model = model_name
-  args.data = data
-  args.sim_mat = adjacency_matrix
+  args.data = "./tmp.txt"
+  args.sim_mat = "./adjacency_matrix.txt"
   args.train=train_size
   args.valid = valid_size
   args.save_name = save_name
   
   
-  print(args);
+  #print(args);
   if not os.path.exists(args.save_dir):
       os.makedirs(args.save_dir)
   if args.model in ['CNNRNN', 'CNN'] and args.sim_mat is None:
@@ -143,10 +145,9 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name):
           torch.cuda.manual_seed(args.seed)
   
   
-  
+  print ("here")
   Data = Data_utility(args);
-  
-
+ 
   model = eval(args.model).Model(args, Data);
   print('model:', model)
   if args.cuda:
