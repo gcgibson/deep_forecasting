@@ -25,6 +25,7 @@ DL4EPI <- R6Class(
       epochs <- 100
       train_size <- 0.6
       valid_size <- 0.2
+      window <- NULL
       save_name <- "tmp"
       model_name <- "CNNRNN_Res"
       ## stores data for easy access and checks to make sure it's the right class
@@ -41,7 +42,7 @@ DL4EPI <- R6Class(
       print (dim(y_ts))
         ## fit sarimaTD with 'fit_sarima()' from sarimaTD package
         ## fit_sarima() performs box-cox transformation and seasonal differencing
-      private$.models[[1]] <- train_dl(y_ts,adjacency_matrix,train_size,valid_size,model_name,save_name)
+      private$.models[[1]] <- train_dl(y_ts,adjacency_matrix,train_size,valid_size,model_name,save_name,window)
       
     },
     forecast = function(newdata = private$.data, steps) {
@@ -52,12 +53,16 @@ DL4EPI <- R6Class(
       nmodels <- length(private$.models)
       
       ## define an array to store the simulated forecasts
-      sim_forecasts <- array(dim = c(nmodels, steps, private$.nsim))
-      dimnames(sim_forecasts) <- list(newdata$rnames, 1:steps, NULL)
+      #sim_forecasts <- array(dim = c(nmodels, steps, private$.nsim))
+      #dimnames(sim_forecasts) <- list(newdata$rnames, 1:steps, NULL)
       
-      sim_forecasts <- test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,NULL,NULL)
       
-      private$output <- SimulatedIncidenceMatrix$new(sim_forecasts)
+      sim_forecasts <- matrix(NA,ncol=16)
+      for (step_ahead in 1:6){
+        sim_forecasts <- rbind(sim_forecasts,test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,step_ahead))
+      }
+      sim_forecasts <- sim_forecasts[2:nrow(sim_forecasts),]
+      private$output <- SimulatedIncidenceMatrix$new(array(sim_forecasts,dim=c(1,6,1)))
       return(IncidenceForecast$new(private$output, forecastTimes = rep(TRUE, steps)))
     },
     initialize = function(period = 26, nsim=1000) { 

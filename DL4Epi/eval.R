@@ -4,7 +4,7 @@
 
 library(ForecastFramework)
 library(dplyr)
-#source("code/forecast-utils.R") ## helper functions for tidying forecast data
+source("forecast_utils.R") ## helper functions for tidying forecast data
 
 ## TO USE THIS CODE, PLEASE READ THE FOLLOWING INSTRUCTIONS:
 

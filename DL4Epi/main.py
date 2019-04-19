@@ -78,7 +78,7 @@ def train(loader, data, model, criterion, optim, batch_size):
         n_samples += (output.size(0) * loader.m);
     return total_loss / n_samples
 
-def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name):
+def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name,window_):
     
   parser = argparse.ArgumentParser(description='Epidemiology Forecasting')
   # --- Data option
@@ -116,11 +116,11 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name):
   print ("HElllo")
   tmp = np.reshape(data,(-1,16))
   np.savetxt("tmp.txt",tmp,delimiter=",", fmt='%f')
-  np.savetxt("adjacency_matrix.txt",adjacency_matrix,delimiter=",", fmt='%f')
+  #np.savetxt("adjacency_matrix.txt",adjacency_matrix,delimiter=",", fmt='%f')
   args = parser.parse_args()
   args.model = model_name
   args.data = "./tmp.txt"
-  args.sim_mat = "./adjacency_matrix.txt"
+  args.sim_mat = "./GER_states_adjacency.txt"
   args.train=train_size
   args.valid = valid_size
   args.save_name = save_name
@@ -191,7 +191,8 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name):
   
   return (None)
   
-def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,ext_data,ext_data_outcome):
+def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,steps):
+  steps = int(steps)
   parser = argparse.ArgumentParser(description='Epidemiology Forecasting')
   # --- Data option
   parser.add_argument('--data', type=str, default="./training_data.txt",help='location of the data file')
@@ -216,7 +217,7 @@ def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,ext_da
   parser.add_argument('--weight_decay', type=float, default=0, help='weight decay (L2 regularization)')
   parser.add_argument('--batch_size', type=int, default=128, metavar='N',help='batch size')
   # --- Misc prediction option
-  parser.add_argument('--horizon', type=int, default=12, help='predict horizon')
+  parser.add_argument('--horizon', type=int, default=steps, help='predict horizon')
   parser.add_argument('--window', type=int, default=24 * 7,help='window size')
   parser.add_argument('--metric', type=int, default=1, help='whether (1) or not (0) normalize rse and rae with global variance/deviation ')
   parser.add_argument('--normalize', type=int, default=0, help='the normalized method used, detail in the utils.py')
@@ -281,9 +282,7 @@ def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,ext_da
       model.parameters(), args.optim, args.lr, args.clip, weight_decay = args.weight_decay,
   )
   
-  if (ext_data is not None):
-    Data.test[0] = ext_data
-    Data.test[1] = ext_data_outcome
+  
   # Load the best saved model.
   #model_path = '%s/%s.pt' % (args.save_dir, args.save_name)
   model_path = "best_train_model.pt"
@@ -294,4 +293,4 @@ def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,ext_da
   
   forecast =model(Variable(Data.test[0]))
   print (np.shape(forecast))
-  return forecast[-1,]
+  return forecast[-1,].data.numpy()
