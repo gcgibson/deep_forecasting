@@ -2,10 +2,7 @@ library(tidyverse)
 library(ForecastFramework)
 #theme_set(theme_bw())
 library(reticulate)
-use_python("/Users/gcgibson/anaconda/bin/python2.7")
 
-
-source_python("main.py")
 
 data <- "./training_data.txt"
 

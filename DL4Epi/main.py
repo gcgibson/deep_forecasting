@@ -78,13 +78,14 @@ def train(loader, data, model, criterion, optim, batch_size):
         n_samples += (output.size(0) * loader.m);
     return total_loss / n_samples
 
-def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name,window_):
+
+def train_dl(data,adjacency_matrix,model_name,save_name,step_ahead,epochs):
     
   parser = argparse.ArgumentParser(description='Epidemiology Forecasting')
   # --- Data option
   parser.add_argument('--data', type=str, default="./training_data.txt",help='location of the data file')
-  parser.add_argument('--train', type=float, default=0.8,help='how much data used for training')
-  parser.add_argument('--valid', type=float, default=0.2,help='how much data used for validation')
+  #parser.add_argument('--train', type=float, default=0.8,help='how much data used for training')
+  #parser.add_argument('--valid', type=float, default=0.2,help='how much data used for validation')
   parser.add_argument('--model', type=str, default='AR',help='model to select')
   # --- CNNRNN option
   parser.add_argument('--sim_mat', type=str,help='file of similarity measurement (Required for CNNRNN, CNN)')
@@ -105,7 +106,7 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name,wi
   parser.add_argument('--batch_size', type=int, default=128, metavar='N',help='batch size')
   # --- Misc prediction option
   parser.add_argument('--horizon', type=int, default=12, help='predict horizon')
-  parser.add_argument('--window', type=int, default=24,help='window size')
+  parser.add_argument('--window', type=int, default=10,help='window size')
   parser.add_argument('--metric', type=int, default=1, help='whether (1) or not (0) normalize rse and rae with global variance/deviation ')
   parser.add_argument('--normalize', type=int, default=0, help='the normalized method used, detail in the utils.py')
   
@@ -113,18 +114,16 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name,wi
   parser.add_argument('--gpu', type=int, default=None, help='GPU number to use')
   parser.add_argument('--cuda', type=str, default=False, help='use gpu or not')
   
-  print ("HElllo")
   tmp = np.reshape(data,(-1,16))
   np.savetxt("tmp.txt",tmp,delimiter=",", fmt='%f')
   #np.savetxt("adjacency_matrix.txt",adjacency_matrix,delimiter=",", fmt='%f')
   args = parser.parse_args()
   args.model = model_name
   args.data = "./tmp.txt"
-  args.sim_mat = "./GER_states_adjacency.txt"
-  args.train=train_size
-  args.valid = valid_size
+  args.sim_mat = adjacency_matrix
   args.save_name = save_name
-  
+  args.horizon = int(step_ahead)
+  args.epochs = int(epochs)
   
   #print(args);
   if not os.path.exists(args.save_dir):
@@ -148,6 +147,9 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name,wi
   print ("here")
   Data = Data_utility(args);
  
+  print('shape of training data is:')
+  print(np.shape(Data.train[0]))
+  print(np.shape(Data.train[1]))
   model = eval(args.model).Model(args, Data);
   print('model:', model)
   if args.cuda:
@@ -177,27 +179,28 @@ def train_dl(data,adjacency_matrix,train_size,valid_size,model_name,save_name,wi
   for epoch in range(1, args.epochs+1):
     epoch_start_time = time.time()
     train_loss = train(Data, Data.train, model, criterion, optim, args.batch_size)
-    val_loss, val_rae, val_corr = evaluate(Data, Data.valid, model, evaluateL2, evaluateL1, args.batch_size);
+    val_loss, val_rae, val_corr = evaluate(Data, Data.train, model, evaluateL2, evaluateL1, args.batch_size);
     print('| end of epoch {:3d} | time: {:5.2f}s | train_loss {:5.8f} | valid rse {:5.4f} | valid rae {:5.4f} | valid corr  {:5.4f}'.format(epoch, (time.time() - epoch_start_time), train_loss, val_loss, val_rae, val_corr))
     # Save the model if the validation loss is the best we've seen so far.
     if val_loss < best_val:
       best_val = val_loss
       #model_path = '%s/%s.pt' % (args.save_dir, args.save_name)
-      model_path = 'best_train_model.pt'
+      model_path = 'best_train_model_%dahead.pt'%step_ahead
+      #print (model_path)
       with open(model_path, 'wb') as f:
         torch.save(model.state_dict(), f)
-        test_acc, test_rae, test_corr  = evaluate(Data, Data.test, model, evaluateL2, evaluateL1, args.batch_size);
-        print ("test rse {:5.4f} | test rae {:5.4f} | test corr {:5.4f}".format(test_acc, test_rae, test_corr))
+        # test_acc, test_rae, test_corr  = evaluate(Data, Data.test, model, evaluateL2, evaluateL1, args.batch_size);
+        # print ("test rse {:5.4f} | test rae {:5.4f} | test corr {:5.4f}".format(test_acc, test_rae, test_corr))
+         
+  return (train_loss)
   
-  return (None)
-  
-def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,steps):
-  steps = int(steps)
+
+def mytest(data,adjacency_matrix,model_name,save_name,horizon, test_dat=None ):
   parser = argparse.ArgumentParser(description='Epidemiology Forecasting')
   # --- Data option
   parser.add_argument('--data', type=str, default="./training_data.txt",help='location of the data file')
-  parser.add_argument('--train', type=float, default=0.8,help='how much data used for training')
-  parser.add_argument('--valid', type=float, default=0.2,help='how much data used for validation')
+  # parser.add_argument('--train', type=float, default=0.8,help='how much data used for training')
+  # parser.add_argument('--valid', type=float, default=0.2,help='how much data used for validation')
   parser.add_argument('--model', type=str, default='AR',help='model to select')
   # --- CNNRNN option
   parser.add_argument('--sim_mat', type=str,help='file of similarity measurement (Required for CNNRNN, CNN)')
@@ -217,8 +220,8 @@ def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,steps)
   parser.add_argument('--weight_decay', type=float, default=0, help='weight decay (L2 regularization)')
   parser.add_argument('--batch_size', type=int, default=128, metavar='N',help='batch size')
   # --- Misc prediction option
-  parser.add_argument('--horizon', type=int, default=steps, help='predict horizon')
-  parser.add_argument('--window', type=int, default=24 * 7,help='window size')
+  parser.add_argument('--horizon', type=int, default=1, help='predict horizon')
+  parser.add_argument('--window', type=int, default=10 ,help='window size')
   parser.add_argument('--metric', type=int, default=1, help='whether (1) or not (0) normalize rse and rae with global variance/deviation ')
   parser.add_argument('--normalize', type=int, default=0, help='the normalized method used, detail in the utils.py')
   
@@ -226,13 +229,13 @@ def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,steps)
   parser.add_argument('--gpu', type=int, default=None, help='GPU number to use')
   parser.add_argument('--cuda', type=str, default=False, help='use gpu or not')
   
+  # np.savetxt("adjacency_matrix",adjacency_matrix,delimiter=",")
 
   args = parser.parse_args()
+  args.horizon = int(horizon)
   args.model = model_name
-  args.data = data
+  args.data = "./tmp.txt"
   args.sim_mat = adjacency_matrix
-  args.train=train_size
-  args.valid = valid_size
   args.save_name = save_name
   
   
@@ -258,8 +261,7 @@ def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,steps)
   
   Data = Data_utility(args);
   
-    
-
+  
   model = eval(args.model).Model(args, Data);
   print('model:', model)
   if args.cuda:
@@ -282,15 +284,22 @@ def test(data,adjacency_matrix,train_size,valid_size,model_name,save_name,steps)
       model.parameters(), args.optim, args.lr, args.clip, weight_decay = args.weight_decay,
   )
   
-  
+  if (test_dat is None):
+      print('Testing requires a test set, exiting ...')
+      sys.exit(0)
+  else:
+    # append test data to train data and batchify according to specified horizon and window
+    test_data = Data.test_batchify(test_dat)
+    
   # Load the best saved model.
   #model_path = '%s/%s.pt' % (args.save_dir, args.save_name)
-  model_path = "best_train_model.pt"
+  model_path = "best_train_model_%dahead.pt"%horizon
   with open(model_path, 'rb') as f:
       model.load_state_dict(torch.load(f));
-  test_acc, test_rae, test_corr  = evaluate(Data, Data.test, model, evaluateL2, evaluateL1, args.batch_size);
+  test_acc, test_rae, test_corr  = evaluate(Data, test_data, model, evaluateL2, evaluateL1, args.batch_size);
   print ("test rse {:5.4f} | test rae {:5.4f} | test corr {:5.4f}".format(test_acc, test_rae, test_corr))
   
-  forecast =model(Variable(Data.test[0]))
+  forecast =model(Variable(test_data[0]))
   print (np.shape(forecast))
+  print (forecast[-1,])
   return forecast[-1,].data.numpy()

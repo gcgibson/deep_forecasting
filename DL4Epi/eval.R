@@ -46,7 +46,7 @@ if(THIS_MODEL_FITS_ONCE){
   ##  initialize model
   ## TODO: need to make this line be automatically called
   this_model <- DL4EPI$new()
-  
+  this_model$setSteps(6)
   ##  fit model to data
   this_model$fit(once_training_data)
   
@@ -54,10 +54,7 @@ if(THIS_MODEL_FITS_ONCE){
   for(sw in 1:52){ 
     ## make data to forecast from
     last_col_idx <- which(training_data$colData$season.week==sw & training_data$colData$season==eval_season)
-    tmp_timezero <- list(
-      year = training_data$colData$year[last_col_idx], 
-      epiweek = training_data$colData$week[last_col_idx] 
-    )
+    tmp_timezero <- training_data$colData$week.end.date[last_col_idx]
     tmp_forecast_data <- training_data$subset(cols = first_col_idx:last_col_idx, mutate = FALSE)
     
     ## make forecast
