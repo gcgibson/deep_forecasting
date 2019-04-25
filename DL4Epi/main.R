@@ -72,17 +72,21 @@ DL4EPI <- R6Class(
       
       ## define an array to store the simulated forecasts
       #sim_forecasts <- array(dim = c(nmodels, steps, private$.nsim))
-      #dimnames(sim_forecasts) <- list(newdata$rnames, 1:steps, NULL)
       
       adj_mat_fname <- "./GER_states_adjacency.txt"
       
       # print (dim(newdata))
-      sim_forecasts <- matrix(NA,nrow=private$.STEPS,ncol=16)
-      for (step_ahead in 1:6){
-        sim_forecasts[step_ahead,] <- mytest(private$.data$mat,adj_mat_fname,model_name,save_name,step_ahead,newdata)
+      list_of_matrices <- array(rep(NA,16*6*10),dim=c(16,6,10))
+      
+      for (sims in 1:10){
+        for (step_ahead in 1:6){
+          list_of_matrices[,step_ahead,sims] <- mytest(private$.data$mat,adj_mat_fname,model_name,save_name,step_ahead,t(newdata$mat))
+        }
       }
-      print (dim(sim_forecasts))
-      private$output <- SimulatedIncidenceMatrix$new(array(t(sim_forecasts),dim=c(16,6,1)))
+     # print (dim(sim_forecasts))
+      dimnames(list_of_matrices) <- list(newdata$rnames, 1:steps, NULL)
+      
+      private$output <- SimulatedIncidenceMatrix$new(list_of_matrices)
       return(IncidenceForecast$new(private$output, forecastTimes = rep(TRUE, steps)))
     },
     initialize = function(period = 26, nsim=1000,STEPS=1) { 

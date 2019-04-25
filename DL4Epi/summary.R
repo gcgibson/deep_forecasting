@@ -3,20 +3,24 @@
 library(ForecastFramework)
 library(tidyverse)
 
-source("code/forecast-utils.R")
+source("forecast_utils.R")
 
-training_data <- readRDS("data/training_data.rds")
+training_data <- readRDS("training_data.rds")
 data_forecasted_from <- gather_data(training_data)
 
-data_forecasted <- read_csv("results/seasonalGAM-training-results.csv") %>%
+data_forecasted <- read_csv("results/DL4EPI-training-results.csv") %>%
   #data_forecasted <- fcast_data %>%
-  left_join(dplyr::select(data_forecasted_from, location, date, value)) %>%
+  dplyr::left_join(dplyr::select(data_forecasted_from, location, date, value),by="date") %>%
   rename(truth=value) %>%
   mutate(
     bias = pred_median - truth,
     ci50_cov = truth>pred_50_lb & truth<pred_50_ub,
     ci80_cov = truth>pred_80_lb & truth<pred_80_ub,
     ci95_cov = truth>pred_95_lb & truth<pred_95_ub)
+
+data_forecasted$location = data_forecasted$location.x
+levels(data_forecasted$location) <- levels(data_forecasted_from$location)
+#plot(data_forecasted[data_forecasted$location == "H" & data_forecasted$step == 1,]$pred_median,type='l')
 
 ## overall summary
 colMeans(dplyr::select(data_forecasted, bias, starts_with("ci")), na.rm=TRUE)

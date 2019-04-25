@@ -48,7 +48,7 @@ if(THIS_MODEL_FITS_ONCE){
   this_model <- DL4EPI$new()
   this_model$setSteps(6)
   ##  fit model to data
-  this_model$fit(once_training_data)
+  #this_model$fit(once_training_data)
   
   ##   foreach week in season s, make forecast and save
   for(sw in 1:52){ 
