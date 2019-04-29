@@ -76,13 +76,17 @@ DL4EPI <- R6Class(
       adj_mat_fname <- "./GER_states_adjacency.txt"
       
       # print (dim(newdata))
-      list_of_matrices <- array(rep(NA,16*6*10),dim=c(16,6,10))
+      list_of_matrices <- array(rep(NA,16*6*private$.nsim),dim=c(16,6,private$.nsim))
+      tmp <- mytest(private$.data$mat,adj_mat_fname,model_name,save_name,1,t(newdata$mat))
       
-      for (sims in 1:10){
+     
+      #for (sims in 1:100){
         for (step_ahead in 1:6){
-          list_of_matrices[,step_ahead,sims] <- mytest(private$.data$mat,adj_mat_fname,model_name,save_name,step_ahead,t(newdata$mat))
+          tmp <- mytest(private$.data$mat,adj_mat_fname,model_name,save_name,step_ahead,t(newdata$mat))
+          for (i_ in 1:length(tmp))
+          list_of_matrices[i_,step_ahead,] <- rnorm(private$.nsim,tmp[i_],sd=1)
         }
-      }
+      #}
      # print (dim(sim_forecasts))
       dimnames(list_of_matrices) <- list(newdata$rnames, 1:steps, NULL)
       
